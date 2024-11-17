@@ -289,11 +289,28 @@ export default {
       this.errors.fullName = /^[a-zA-Z\s]{3,}$/.test(this.form.fullName) ? null : 'Debe tener al menos 3 letras y solo contener letras y espacios.';
     },
     validatePassportNumber() {
-      this.errors.passportNumber = /^[A-Z0-9]{6,9}$/.test(this.form.passportNumber) ? null : 'Debe contener entre 6 y 9 caracteres alfanuméricos.';
+      // Convertir a mayúsculas automáticamente
+      this.form.passportNumber = this.form.passportNumber.toUpperCase();
+      
+      // Validar longitud exacta de 9 caracteres
+      const regex = /^[A-Z0-9]{9}$/;
+      this.errors.passportNumber = regex.test(this.form.passportNumber)
+        ? null
+        : 'Debe tener exactamente 9 caracteres alfanuméricos.';
     },
     validateBirthDate() {
-      const age = new Date().getFullYear() - new Date(this.form.birthDate).getFullYear();
-      this.errors.birthDate = age >= 18 ? null : 'Debe ser mayor de 18 años.';
+      const birthDate = new Date(this.form.birthDate);
+      const currentDate = new Date();
+      const age = currentDate.getFullYear() - birthDate.getFullYear();
+      
+      // Verificar el rango de años y la edad
+      if (birthDate.getFullYear() < 1900) {
+        this.errors.birthDate = 'El año debe ser mayor o igual a 1900.';
+      } else if (age < 18 || (age === 18 && currentDate < new Date(birthDate.setFullYear(birthDate.getFullYear() + 18)))) {
+        this.errors.birthDate = 'Debe ser mayor de 18 años.';
+      } else {
+        this.errors.birthDate = null;
+      }
     },
     validateCity() {
       if (this.form.departureCity && this.form.destinationCity && this.form.departureCity === this.form.destinationCity) {
@@ -315,9 +332,23 @@ export default {
       this.errors.ticketCount = this.form.ticketCount >= 1 && this.form.ticketCount <= 10 ? null : 'Debe elegir entre 1 y 10 boletos.';
     },
     handleCardInput() {
+      // Limitar el número de tarjeta a 16 caracteres y detectar tipo
       this.localData.tarjeta = this.localData.tarjeta.slice(0, 16);
-      this.validateTarjeta();
       this.detectCardType();
+
+      // Autocompletar nombre según tipo de tarjeta
+      const tarjeta = this.localData.tarjeta;
+      if (/^4/.test(tarjeta)) {
+        this.form.cardName = 'VISA';
+      } else if (/^5[1-5]/.test(tarjeta)) {
+        this.form.cardName = 'MASTERCARD';
+      } else if (/^3[47]/.test(tarjeta)) {
+        this.form.cardName = 'AMERICAN EXPRESS';
+      } else {
+        this.form.cardName = '';
+      }
+
+      this.validateTarjeta();
     },
     validateTarjeta() {
       const regex = /^[0-9]{16}$/;
